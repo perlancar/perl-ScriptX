@@ -1,0 +1,369 @@
+package ScriptX;
+
+# AUTHORITY
+# DATE
+# DIST
+# VERSION
+
+# IFUNBUILT
+use strict;
+use warnings;
+# END IFUNBUILT
+use Log::ger;
+
+our %Handlers;
+
+my $Stash = {};
+
+sub run_event {
+    my %args = @_;
+
+    # get arguments
+
+    my $name = $args{name};
+    defined $name or die "Please supply 'name'";
+    $Handlers{$name} ||= [];
+
+    my $before_name = $args{before_name} || "before_$name";
+    $Handlers{$before_name} ||= [];
+
+    my $after_name = $args{after_name} || "after_$name";
+    $Handlers{$after_name} ||= [];
+
+    my $req_handler                          = $args{req_handler};                          $req_handler                          = 0 unless defined $req_handler;
+    my $run_all_handlers                     = $args{run_all_handlers};                     $run_all_handlers                     = 1 unless defined $run_all_handlers;
+    my $allow_before_handler_to_cancel_event = $args{allow_before_handler_to_cancel_event}; $allow_before_handler_to_cancel_event = 1 unless defined $allow_before_handler_to_cancel_event;
+    my $allow_before_handler_to_skip_rest    = $args{allow_before_handler_to_skip_rest};    $allow_before_handler_to_skip_rest    = 1 unless defined $allow_before_handler_to_skip_rest;
+    my $allow_handler_to_cancel_event        = $args{allow_handler_to_cancel_event};        $allow_handler_to_cancel_event        = 1 unless defined $allow_handler_to_cancel_event;
+    my $allow_handler_to_skip_rest           = $args{allow_handler_to_skip_rest};           $allow_handler_to_skip_rest           = 1 unless defined $allow_handler_to_skip_rest;
+    my $allow_handler_to_repeat_event        = $args{allow_handler_to_repeat_event};        $allow_handler_to_repeat_event        = 1 unless defined $allow_handler_to_repeat_event;
+    my $allow_after_handler_to_repeat_event  = $args{allow_after_handler_to_repeat_event};  $allow_after_handler_to_repeat_event  = 1 unless defined $allow_after_handler_to_repeat_event;
+    my $allow_after_handler_to_skip_rest     = $args{allow_after_handler_to_skip_rest};     $allow_after_handler_to_skip_rest     = 1 unless defined $allow_after_handler_to_skip_rest;
+
+
+    my ($res, $is_success);
+
+  RUN_BEFORE_HANDLERS:
+    {
+        my $i = 0;
+        for my $rec (@{ $Handlers{$before_name} }) {
+            $i++;
+            my ($label, $prio, $handler) = @$rec;
+            log_trace "[scriptx] ([%d/%d] Running handler %s for event %s ...",
+                $i, scalar(@{ $Handlers{$before_name} }), $label, $before_name;
+            $res = $handler->($Stash);
+            $is_success = $res->[0] =~ /\A[123]/;
+            log_trace "[scriptx] [%d/%d] handler %s for event %s returns %s (%s)",
+                $i, scalar(@{ $Handlers{$before_name} }), $label, $before_name, $res,
+                $is_success ? "success" : "fail";
+            if ($res->[0] == 412) {
+                if ($allow_before_handler_to_cancel_event) {
+                    log_trace "[scriptx] Cancelling event $name (status 412)";
+                    return;
+                } else {
+                    die "Event handler returns 412 when we do not allow cancelling event $name";
+                }
+            }
+            if ($allow_before_handler_to_skip_rest && $res->[0] == 301) {
+                log_trace "[scriptx] Skipping the rest of the $before_name handlers (status 301)";
+                last RUN_BEFORE_HANDLERS;
+            }
+        }
+    }
+
+  RUN_HANDLERS:
+    {
+        my $i = 0;
+        $res = [304, "There is no handler for event $name"];
+        $is_success = 1;
+        if ($req_handler) {
+            die "There is no handler for event $name"
+                unless @{ $Handlers{$name} };
+        }
+
+        for my $rec (@{ $Handlers{$name} }) {
+            $i++;
+            my ($label, $prio, $handler) = @$rec;
+            log_trace "[scriptx] [%d/%d] Running handler %s for event %s ...",
+                $i, scalar(@{ $Handlers{$name} }), $label, $name;
+            $res = $handler->($Stash);
+            $is_success = $res->[0] =~ /\A[123]/;
+            log_trace "[scriptx] [%d/%d] handler %s for event %s returns %s (%s)",
+                $i, scalar(@{ $Handlers{$name} }), $label, $name, $res,
+                $is_success ? "success" : "fail";
+            last RUN_HANDLERS if $is_success && !$run_all_handlers;
+            if ($res->[0] == 412) {
+                if ($allow_handler_to_cancel_event) {
+                    log_trace "[scriptx] Cancelling event $name (status 412)";
+                    return;
+                } else {
+                    die "Event handler returns 412 when we do not allow cancelling event $name";
+                }
+            }
+            if ($res->[0] == 449) {
+                if ($allow_handler_to_repeat_event) {
+                    log_trace "[scriptx] Repeating event $name (status 449)";
+                    goto RUN_HANDLERS;
+                } else {
+                    die "Event handler returns 449 when we do not allow repeating event $name";
+                }
+            }
+            if ($allow_handler_to_skip_rest && $res->[0] == 301) {
+                log_trace "[scriptx] Skipping the rest of the $name handlers (status 301)";
+                last RUN_HANDLERS;
+            }
+        }
+    }
+
+    if ($is_success && $args{on_success}) {
+        $args{on_success}->($Stash);
+    } elsif (!$is_success && $args{on_failure}) {
+        $args{on_failure}->($Stash);
+    }
+
+  RUN_AFTER_HANDLERS:
+    {
+        my $i = 0;
+        for my $rec (@{ $Handlers{$after_name} }) {
+            $i++;
+            my ($label, $prio, $handler) = @$rec;
+            log_trace "[scriptx] [%d/%d] Running handler %s for event %s ...",
+                $i, scalar(@{ $Handlers{$after_name} }), $label, $after_name;
+            $res = $handler->($Stash);
+            $is_success = $res->[0] =~ /\A[123]/;
+            log_trace "[scriptx] [%d/%d] handler %s for event %s returns %s (%s)",
+                $i, scalar(@{ $Handlers{$after_name} }), $label, $after_name, $res,
+                $is_success ? "success" : "fail";
+            if ($res->[0] == 449) {
+                if ($allow_after_handler_to_repeat_event) {
+                    log_trace "[scriptx] Repeating event $name (status 412)";
+                    goto RUN_HANDLERS;
+                } else {
+                    die "Event handler returns 449 when we do not allow repeating event $name";
+                }
+            }
+            if ($allow_after_handler_to_skip_rest && $res->[0] == 301) {
+                log_trace "[scriptx] Skipping the rest of the $after_name handlers (status 301)";
+                last RUN_AFTER_HANDLERS;
+            }
+        }
+    }
+
+    undef;
+}
+
+sub run {
+    run_event(
+        name => 'run',
+    );
+}
+
+sub add_handler {
+    my ($event, $label, $prio, $handler) = @_;
+
+    # XXX check for known events?
+    $Handlers{$event} ||= [];
+
+    # keep sorted
+    splice @{ $Handlers{$event} }, 0, scalar(@{ $Handlers{$event} }),
+        (sort { $a->[1] <=> $b->[1] } @{ $Handlers{$event} }, [$label, $prio, $handler]);
+}
+
+sub activate_plugin {
+    my ($plugin_name, $args) = @_;
+
+    run_event(
+        name => 'activate_plugin',
+        on_success => sub {
+            my $package = "ScriptX::$plugin_name";
+            (my $package_pm = "$package.pm") =~ s!::!/!g;
+            require $package_pm;
+            my $obj = $package->new(%{ $args || {} });
+            $obj->activate;
+        },
+        on_failure => sub {
+            die "Cannot activate plugin $plugin_name";
+        },
+    );
+}
+
+sub import {
+    my $class = shift;
+
+    while (@_) {
+        my $plugin_name = shift;
+        my $plugin_args = @_ && ref($_[0]) eq 'HASH' ? shift : {};
+        activate_plugin($plugin_name, $plugin_args);
+    }
+}
+
+1;
+# ABSTRACT: A plugin-based script framework
+
+=head1 SYNOPSIS
+
+In your script:
+
+ use ScriptX Rinci => {func => 'MyApp::app'};
+ ScriptX->run;
+
+
+=head1 DESCRIPTION
+
+=head2 Glossary
+
+=head3 Event
+
+A point in code when L<plugins|/Plugin> have a chance to do stuffs.
+
+=head3 Event handler
+
+A coderef that will be called by ScriptX on an L<event|/Event>. The event
+handler will be passed an argument C<$stash> (a hashref) which contains various
+information (see L</Stash>). The event handler is expected to return an
+enveloped result (see L<Rinci::function>).
+
+=head3 Plugin
+
+A Perl module under the C<ScriptX::> namespace that supplies additional
+behavior/functionality. When you activate a plugin, the plugin registers
+L<handler(s)|/"Event handler"> to one or more L<events|/Event>.
+
+=head3
+
+
+=head1 FUNCTIONS
+
+None exported by default, but they are exportable.
+
+=head2 run_event
+
+Usage:
+
+ run_event(%args);
+
+Arguments:
+
+=over
+
+=item * name
+
+Str. Required. Name of the event, for example: C<get_args>.
+
+=item * before_name
+
+Str. Optional, defaults to C<before_$name>. Name of the "before event" (to allow
+plugins to do stuffs before the actual event).
+
+=item * after_name
+
+Str. Optional, defaults to C<after_$name>. Name of the "after stage" (to allow
+plugins to do stuffs after the actual event).
+
+=item * req_handler
+
+Bool. Optional, defaults to 0. When set to true, will die when there is no
+handler for the event C<$name>.
+
+=item * run_all_handlers
+
+Bool. Optional, defaults to 1. When set to false, will stop calling event
+handlers for the C<$name> event after the first successful handler (success is
+defined as codes 1xx, 2xx, and 3xx). Otherwise, all handlers are run regardless
+of success status.
+
+=item * allow_before_handler_to_cancel_event
+
+Bool. Optional, defaults to 1. When set to true, an event handler in the
+C<before_$name> event can cancel the event by returning 412 status. When set to
+false, will die whenever an event handler returns 412.
+
+=item * allow_before_handler_to_skip_rest
+
+Bool. Optional, defaults to 1. When set to true, an event handler can skip the
+rest of the event handlers in the C<before_$name> event by returning 301 status.
+When set to false, the next event handler will be called anyway even though an
+event handler returns 301.
+
+=item * allow_handler_to_repeat_event
+
+Bool. Optional, defaults to 1. When set to true, an event handler in the
+C<$name> event can repeat the event by returning 449 status. When set to false,
+will die whenever an event handler returns 449.
+
+=item * allow_handler_to_cancel_event
+
+Bool. Optional, defaults to 1. When set to true, an event handler in the
+C<$name> event can cancel the event by returning 412 status. When set to false,
+will die whenever an event handler returns 412.
+
+=item * allow_handler_to_skip_rest
+
+Bool. Optional, defaults to 1. When set to true, an event handler can skip the
+rest of the event handlers in the C<$name> event by returning 301 status. When
+set to false, the next event handler will be called anyway even though an event
+handler returns 301.
+
+=item * allow_after_handler_to_repeat_event
+
+Bool. Optional, defaults to 1. When set to true, an event handler in the
+C<after_$name> event can repeat the event by returning 449 status. When set to
+false, will die whenever an event handler returns 449.
+
+=item * allow_after_handler_to_skip_rest
+
+Bool. Optional, defaults to 1. When set to true, an event handler can skip the
+rest of the event handlers in the C<after_$name> event by returning 301 status.
+When set to false, the next event handler will be called anyway even though an
+event handler returns 301.
+
+=item * on_success
+
+Coderef. Optional.
+
+=item * on_failure
+
+Coderef. Optional.
+
+=back
+
+Run an event by running codes and event handlers.
+
+First, the C<before_$name> event handlers are called. Unless
+L<allow_before_handler_to_cancel_event> is set to false, the handler for this
+event can cancel the event by returning 412 status, in which case the routine
+ends prematurely (no handlers for the C<$name> as well as C<after_$name> are
+run).
+
+Then the C<$name> event handlers are run.
+
+When the last C<$name> handler returns success (1xx, 2xx, 3xx status) then the
+C<on_success> code is run; otherwise the C<on_failure> code is run.
+
+Then the C<after_$name> event handlers are run. Unless
+L<allow_after_handler_to_repeat_event> is set to false, the handler for this
+event can repeat the event by returning 449 status, in which case the routine
+stops running the C<after_$name> handlers and starts running the C<$name>
+handlers again. The handler which instructs repeat must be careful not to cause
+an infinite loop.
+
+
+=head1 VARIABLES
+
+=head2 %Handlers
+
+This is where event handlers are registered. Keys are event names. Values are
+arrayrefs containing list of handler records:
+
+ [ [$label, $prio, $handler], ... ]
+
+=head2 $Stash
+
+
+=head1 SEE ALSO
+
+The various plugins under the C<ScriptX::> namespace.
+
+Older projects: L<Perinci::CmdLine>.
+
+=cut
