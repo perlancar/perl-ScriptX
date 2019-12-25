@@ -283,7 +283,11 @@ A Perl module under the C<ScriptX::> namespace that supplies additional
 behavior/functionality. When you activate a plugin, the plugin registers
 L<handler(s)|/"Event handler"> to one or more L<events|/Event>.
 
-=head3
+=head3 Priority
+
+An attribute of an event handler. A number between 0 and 100, where smaller
+number means higher priority. Handlers for an event are executed in order of
+descending priority (higher priority first, which means smaller number first).
 
 
 =head1 FUNCTIONS
