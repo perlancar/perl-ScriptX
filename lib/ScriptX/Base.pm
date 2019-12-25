@@ -25,8 +25,7 @@ sub activate {
 
     for my $k (keys %$symtbl) {
         my $v = $symtbl->{$k};
-        next if $k =~ /::$/; # subpackage
-        next unless defined *$v{CODE}; # subroutine
+        next unless ref $v eq 'CODE' || defined *$v{CODE};
         next unless $k =~ /^(before_|on_|after_)(.+)$/;
 
         my $meta_method = "meta_$k";
