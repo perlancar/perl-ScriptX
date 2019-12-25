@@ -24,10 +24,10 @@ sub run_event {
     defined $name or die "Please supply 'name'";
     $Handlers{$name} ||= [];
 
-    my $before_name = $args{before_name} || "before_$name";
+    my $before_name = "before_$name";
     $Handlers{$before_name} ||= [];
 
-    my $after_name = $args{after_name} || "after_$name";
+    my $after_name = "after_$name";
     $Handlers{$after_name} ||= [];
 
     my $req_handler                          = $args{req_handler};                          $req_handler                          = 0 unless defined $req_handler;
@@ -281,16 +281,6 @@ Arguments:
 =item * name
 
 Str. Required. Name of the event, for example: C<get_args>.
-
-=item * before_name
-
-Str. Optional, defaults to C<before_$name>. Name of the "before event" (to allow
-plugins to do stuffs before the actual event).
-
-=item * after_name
-
-Str. Optional, defaults to C<after_$name>. Name of the "after stage" (to allow
-plugins to do stuffs after the actual event).
 
 =item * req_handler
 
