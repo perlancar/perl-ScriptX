@@ -191,14 +191,62 @@ sub activate_plugin {
     );
 }
 
-sub import {
-    my $class = shift;
-
+sub _import {
     while (@_) {
         my $plugin_name = shift;
         my $plugin_args = @_ && ref($_[0]) eq 'HASH' ? shift : {};
         activate_plugin($plugin_name, $plugin_args);
     }
+}
+
+sub _env_to_imports {
+    my $env = shift;
+
+    my @imports;
+    my $plugin_name;
+    my @plugin_args;
+
+    my @elems = split /,/, $env;
+    for my $i (0..$#elems) {
+        my $el = $elems[$i];
+        if ($el =~ /\A-(\w+(?:::\w+)*)\z/) {
+            if (defined $plugin_name) {
+                push @imports, $plugin_name;
+                push @imports, {@plugin_args} if @plugin_args;
+                undef $plugin_name;
+                @plugin_args = ();
+            } else {
+                $plugin_name = $1;
+            }
+            if ($i == $#elems) {
+                push @imports, $1;
+            }
+        } else {
+            die "Invalid syntax in SCRIPTX_IMPORT, first element needs to be ".
+                "a plugin name (-Foo)" unless defined $plugin_name;
+                push @plugin_args, $el;
+            if ($i == $#elems) {
+                push @imports, $plugin_name;
+                push @imports, {@plugin_args} if @plugin_args;
+            }
+        }
+    }
+    @imports;
+}
+
+my $read_env;
+sub import {
+    my $class = shift;
+
+  READ_ENV:
+    {
+        last if $read_env;
+        last unless defined $ENV{SCRIPTX_IMPORT};
+        import(_env_to_imports($ENV{SCRIPTX_IMPORT}));
+        $read_env++;
+    }
+
+    _import(@_);
 }
 
 1;
@@ -380,6 +428,40 @@ arrayrefs containing list of handler records:
  [ [$label, $prio, $handler], ... ]
 
 =head2 $Stash
+
+
+=head1 ENVIRONMENT
+
+=head2 SCRIPTX_IMPORT
+
+String. Additional import, will be added at the first import() before the usual
+import arguments. Used to add plugins for a running script, e.g. to add
+debugging plugins. The syntax is:
+
+ -<PLUGIN_NAME>,<arg1>,<argval1>,...,-<PLUGIN_NAME>,...
+
+For example, this:
+
+ use ScriptX
+     'CLI::Log',
+     'Rinci::CLI::Debug::DumpStashAfterGetArgs',
+     Exit => {after => 'after_get_args'};
+
+should be written as:
+
+ SCRIPTX_IMPORT=-CLI::Log,-Rinci::CLI::Debug::DumpStashAfterGetArgs,-Exit,after,after_get_args
+
+If your script is:
+
+ use ScriptX Rinci => {func=>'MyPackage::myfunc'};
+
+then with the injection of the above environment, effectively it will become:
+
+ use ScriptX
+     'CLI::Log',
+     'Rinci::CLI::Debug::DumpStashAfterGetArgs',
+     Exit => {after => 'after_get_args'},
+     Rinci => {func=>'MyPackage::myfunc'};
 
 
 =head1 SEE ALSO
