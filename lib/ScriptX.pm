@@ -172,11 +172,15 @@ sub add_handler {
 sub activate_plugin {
     my ($plugin_name, $args) = @_;
 
+    local $Stash->{plugin_name} = $plugin_name;
+    local $Stash->{plugin_args} = $args;
+
     run_event(
         name => 'activate_plugin',
         on_success => sub {
             my $package = "ScriptX::$plugin_name";
             (my $package_pm = "$package.pm") =~ s!::!/!g;
+            log_trace "Loading module $package ...";
             require $package_pm;
             my $obj = $package->new(%{ $args || {} });
             $obj->activate;
@@ -199,6 +203,8 @@ sub import {
 
 1;
 # ABSTRACT: A plugin-based script framework
+
+=for Pod::Coverage ^(run)$
 
 =head1 SYNOPSIS
 
@@ -235,6 +241,32 @@ L<handler(s)|/"Event handler"> to one or more L<events|/Event>.
 =head1 FUNCTIONS
 
 None exported by default, but they are exportable.
+
+=head2 activate_plugin
+
+Usage:
+
+ activate_plugin($name [, \%args ]);
+
+Examples:
+
+ activate_plugin('CLI::Log');
+ activate_plugin('Rinci', {func=>'MyPackage::myfunc'});
+
+Load plugin named C<$name> (by loading Perl module C<ScriptX::$name>),
+instantiate it with arguments %$args, then call the object method C<activate()>.
+
+Note: there is a special plugin C<DisablePlugin|ScriptX::DisablePlugin> which
+can block other plugins from being activated.
+
+=head2 add_handler
+
+Usage:
+
+ add_handler($event, $label, $prio, $handler);
+
+Add handler. Usually called by plugins to add handler to events of their
+choosing.
 
 =head2 run_event
 
