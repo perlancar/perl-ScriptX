@@ -49,13 +49,13 @@ sub run_event {
         for my $rec (@{ $Handlers{$before_name} }) {
             $i++;
             my ($label, $prio, $handler) = @$rec;
-            log_trace "[scriptx] ([%d/%d] Running handler %s for event %s ...",
-                $i, scalar(@{ $Handlers{$before_name} }), $label, $before_name;
+            log_trace "[scriptx] [event %s] [%d/%d] -> handler %s ...",
+                $before_name, $i, scalar(@{ $Handlers{$before_name} }), $label;
             $res = $handler->($Stash);
             $is_success = $res->[0] =~ /\A[123]/;
-            log_trace "[scriptx] [%d/%d] handler %s for event %s returns %s (%s)",
-                $i, scalar(@{ $Handlers{$before_name} }), $label, $before_name, $res,
-                $is_success ? "success" : "fail";
+            log_trace "[scriptx] [event %s] [%d/%d] <- handler %s: %s (%s)",
+                $before_name, $i, scalar(@{ $Handlers{$before_name} }), $label,
+                $res, $is_success ? "success" : "fail";
             if ($res->[0] == 412) {
                 if ($allow_before_handler_to_cancel_event) {
                     log_trace "[scriptx] Cancelling event $name (status 412)";
@@ -84,13 +84,13 @@ sub run_event {
         for my $rec (@{ $Handlers{$name} }) {
             $i++;
             my ($label, $prio, $handler) = @$rec;
-            log_trace "[scriptx] [%d/%d] Running handler %s for event %s ...",
-                $i, scalar(@{ $Handlers{$name} }), $label, $name;
+            log_trace "[scriptx] [event %s] [%d/%d] -> handler %s ...",
+                $name, $i, scalar(@{ $Handlers{$name} }), $label;
             $res = $handler->($Stash);
             $is_success = $res->[0] =~ /\A[123]/;
-            log_trace "[scriptx] [%d/%d] handler %s for event %s returns %s (%s)",
-                $i, scalar(@{ $Handlers{$name} }), $label, $name, $res,
-                $is_success ? "success" : "fail";
+            log_trace "[scriptx] [event %s] [%d/%d] <- handler %s: %s (%s)",
+                $name, $i, scalar(@{ $Handlers{$name} }), $label,
+                $res, $is_success ? "success" : "fail";
             last RUN_HANDLERS if $is_success && !$run_all_handlers;
             if ($res->[0] == 412) {
                 if ($allow_handler_to_cancel_event) {
@@ -127,13 +127,13 @@ sub run_event {
         for my $rec (@{ $Handlers{$after_name} }) {
             $i++;
             my ($label, $prio, $handler) = @$rec;
-            log_trace "[scriptx] [%d/%d] Running handler %s for event %s ...",
-                $i, scalar(@{ $Handlers{$after_name} }), $label, $after_name;
+            log_trace "[scriptx] [event %s] [%d/%d] -> handler %s ...",
+                $after_name, $i, scalar(@{ $Handlers{$after_name} }), $label;
             $res = $handler->($Stash);
             $is_success = $res->[0] =~ /\A[123]/;
-            log_trace "[scriptx] [%d/%d] handler %s for event %s returns %s (%s)",
-                $i, scalar(@{ $Handlers{$after_name} }), $label, $after_name, $res,
-                $is_success ? "success" : "fail";
+            log_trace "[scriptx] [event %s] [%d/%d] <- handler %s: %s (%s)",
+                $after_name, $i, scalar(@{ $Handlers{$after_name} }), $label,
+                $res, $is_success ? "success" : "fail";
             if ($res->[0] == 449) {
                 if ($allow_after_handler_to_repeat_event) {
                     log_trace "[scriptx] Repeating event $name (status 412)";

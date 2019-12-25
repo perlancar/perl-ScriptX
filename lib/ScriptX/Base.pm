@@ -23,6 +23,8 @@ sub activate {
     my $pkg = ref($self);
     my $symtbl = \%{$pkg . "::"};
 
+    (my $plugin_name = $pkg) =~ s/\AScriptX:://;
+
     for my $k (keys %$symtbl) {
         my $v = $symtbl->{$k};
         next unless ref $v eq 'CODE' || defined *$v{CODE};
@@ -35,7 +37,7 @@ sub activate {
 
         ScriptX::add_handler(
             $event,
-            $pkg,
+            $plugin_name,
             defined $meta->{prio} ? $meta->{prio} : 50,
             sub {
                 my $stash = shift;

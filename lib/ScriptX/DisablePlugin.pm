@@ -12,7 +12,6 @@ use warnings;
 use Log::ger;
 
 use parent 'ScriptX::Base';
-require ScriptX;
 
 sub meta {
     return {
