@@ -19,7 +19,23 @@ sub meta {
         conf => {
             plugins => {
                 summary => 'List of plugin names or regexes',
-                schema => ['array*', of=>['any*', of=>['str*', 're*']]],
+                description => <<'_',
+
+Plugins should be an array of plugin names or regexes, e.g.:
+
+    ['Foo', 'Bar', qr/baz/]
+
+To make it easier to specify via environment variable (SCRIPTX_IMPORT), a
+semicolon-separated string is also accepted. A regex should be enclosed in
+"/.../". For example:
+
+    Foo;Bar;/baz/
+
+_
+                schema => ['any*', of=>[
+                    'str*',
+                    ['array*', of=>['any*', of=>['str*', 're*']]],
+                ]],
                 req => 1,
             },
         },
@@ -29,6 +45,10 @@ sub meta {
 sub new {
     my ($class, %args) = (shift, @_);
     $args{plugins} or die "Please specify plugins to disable";
+    unless (ref $args{plugins} eq 'ARRAY') {
+        $args{plugins} =
+            [map { m!\A/(.*)/\z! ? qr/$1/ : $_ } split /;/, $args{plugins}];
+    }
     $class->SUPER::new(%args);
 }
 
