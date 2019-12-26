@@ -242,7 +242,7 @@ sub import {
     {
         last if $read_env;
         last unless defined $ENV{SCRIPTX_IMPORT};
-        import(_env_to_imports($ENV{SCRIPTX_IMPORT}));
+        _import(_env_to_imports($ENV{SCRIPTX_IMPORT}));
         $read_env++;
     }
 
