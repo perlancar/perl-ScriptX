@@ -241,9 +241,25 @@ sub import {
   READ_ENV:
     {
         last if $read_env;
-        last unless defined $ENV{SCRIPTX_IMPORT};
-        _import(_env_to_imports($ENV{SCRIPTX_IMPORT}));
-        $read_env++;
+      READ_SCRIPTX_IMPORT:
+        {
+            last unless defined $ENV{SCRIPTX_IMPORT};
+            log_trace "Reading env variable SCRIPTX_IMPORT ...";
+            _import(_env_to_imports($ENV{SCRIPTX_IMPORT}));
+            $read_env++;
+            last READ_ENV;
+        }
+
+      READ_SCRIPTX_IMPORT_JSON:
+        {
+            last unless defined $ENV{SCRIPTX_IMPORT_JSON};
+            require JSON::PP;
+            log_trace "Reading env variable SCRIPTX_IMPORT_JSON ...";
+            my $imports = JSON::PP::decode_json($ENV{SCRIPTX_IMPORT_JSON});
+            _import(@$imports);
+            $read_env++;
+            last READ_ENV;
+        }
     }
 
     _import(@_);
@@ -466,6 +482,16 @@ then with the injection of the above environment, effectively it will become:
      'Rinci::CLI::Debug::DumpStashAfterGetArgs',
      Exit => {after => 'after_get_args'},
      Rinci => {func=>'MyPackage::myfunc'};
+
+=head2 SCRIPTX_IMPORT_JSON
+
+String (JSON-encoded array). This is an alternative to L</SCRIPTX_IMPORT> and
+has a lower precedence (will not be evaluated when SCRIPTX_IMPORT is defined).
+Useful if a plugin accept data structure instead of plain scalars.
+
+Example:
+
+ SCRIPTX_IMPORT_JSON='["CLI::Log", "Rinci::CLI::Debug::DumpStashAfterGetArgs", "Exit", {"after":"after_get_args"}, "Rinci", {"func":"MyPackage::myfunc"}]'
 
 
 =head1 SEE ALSO
