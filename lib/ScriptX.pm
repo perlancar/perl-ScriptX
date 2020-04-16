@@ -171,7 +171,12 @@ sub add_handler {
 }
 
 sub activate_plugin {
-    my ($plugin_name, $args) = @_;
+    my ($plugin_name0, $args) = @_;
+
+    my ($plugin_name, $wanted_event, $wanted_prio) =
+        $plugin_name0 =~ /\A(\w+(?:::\w+)*)(?:\@(\w+)(?:\@(\d+))?)?\z/
+        or die "Invalid plugin name syntax, please use Foo::Bar or ".
+        "Foo::Bar\@event or Foo::Bar\@event\@prio\n";
 
     local $Stash->{plugin_name} = $plugin_name;
     local $Stash->{plugin_args} = $args;
@@ -184,7 +189,7 @@ sub activate_plugin {
             log_trace "Loading module $package ...";
             require $package_pm;
             my $obj = $package->new(%{ $args || {} });
-            $obj->activate;
+            $obj->activate($wanted_event, $wanted_prio);
         },
         on_failure => sub {
             die "Cannot activate plugin $plugin_name";
@@ -193,41 +198,43 @@ sub activate_plugin {
 }
 
 sub _import {
+    #log_trace "_import(%s)", \@_;
     while (@_) {
-        my $plugin_name = shift;
+        my $plugin_name0 = shift;
         my $plugin_args = @_ && ref($_[0]) eq 'HASH' ? shift : {};
-        activate_plugin($plugin_name, $plugin_args);
+        activate_plugin($plugin_name0, $plugin_args);
     }
 }
 
-sub _env_to_imports {
-    my $env = shift;
+sub _unflatten_import {
+    my ($env, $what) = @_;
 
     my @imports;
-    my $plugin_name;
+    my $plugin_name0;
     my @plugin_args;
 
-    my @elems = split /,/, $env;
-    for my $i (0..$#elems) {
-        my $el = $elems[$i];
-        if ($el =~ /\A-(\w+(?:::\w+)*)\z/) {
-            if (defined $plugin_name) {
-                push @imports, $plugin_name;
+    my @elems = ref $env eq 'ARRAY' ? @$env : split /,/, $env;
+    while (@elems) {
+        my $el = shift @elems;
+        # dash prefix to disambiguate between plugin name and arguments, e.g.
+        # '-PluginName,argname,argval,argname2,argval2,-Plugin2Name,...'
+        if ($el =~ /\A-(\w+(?:::\w+)*(?:\@.+)?)\z/) {
+            if (defined $plugin_name0) {
+                push @imports, $plugin_name0;
                 push @imports, {@plugin_args} if @plugin_args;
-                undef $plugin_name;
-                @plugin_args = ();
-            } else {
-                $plugin_name = $1;
             }
-            if ($i == $#elems) {
+            $plugin_name0 = $1;
+            @plugin_args = ();
+            if (!@elems) {
                 push @imports, $1;
             }
         } else {
-            die "Invalid syntax in SCRIPTX_IMPORT, first element needs to be ".
-                "a plugin name (-Foo)" unless defined $plugin_name;
+            die "Invalid syntax in $what, first element needs to be ".
+                "a plugin name (e.g. -Foo), not '$el'"
+                unless defined $plugin_name0;
                 push @plugin_args, $el;
-            if ($i == $#elems) {
-                push @imports, $plugin_name;
+            if (!@elems) {
+                push @imports, $plugin_name0;
                 push @imports, {@plugin_args} if @plugin_args;
             }
         }
@@ -246,7 +253,7 @@ sub import {
         {
             last unless defined $ENV{SCRIPTX_IMPORT};
             log_trace "Reading env variable SCRIPTX_IMPORT ...";
-            _import(_env_to_imports($ENV{SCRIPTX_IMPORT}));
+            _import(_unflatten_import($ENV{SCRIPTX_IMPORT}, "SCRIPTX_IMPORT"));
             $read_env++;
             last READ_ENV;
         }
@@ -263,7 +270,14 @@ sub import {
         }
     }
 
-    _import(@_);
+    if (@_ && $_[0] =~ /\A-/) {
+        # user that specify imports on command-line, e.g. using -MScriptX=...
+        # can use the ENV syntax so she can specify plugin arguments more
+        # easily: -MScriptX=-Run,command,foobar,-AnotherPlugin,...
+        _import(_unflatten_import(\@_, "import arguments"));
+    } else {
+        _import(@_);
+    }
 }
 
 1;
@@ -488,7 +502,7 @@ String. Additional import, will be added at the first import() before the usual
 import arguments. Used to add plugins for a running script, e.g. to add
 debugging plugins. The syntax is:
 
- -<PLUGIN_NAME>,<arg1>,<argval1>,...,-<PLUGIN_NAME>,...
+ -<PLUGIN_NAME0>,<arg1>,<argval1>,...,-<PLUGIN_NAME0>,...
 
 For example, this:
 
@@ -512,6 +526,11 @@ then with the injection of the above environment, effectively it will become:
      'Rinci::CLI::Debug::DumpStashAfterGetArgs',
      Exit => {after => 'after_get_args'},
      Rinci => {func=>'MyPackage::myfunc'};
+
+Note that PLUGIN_NAME0 is plugin name that can optionally be followed with
+C<@EVENT> or C<@EVENT@PRIO>. For example: C<Debug::DumpStash@after_run@99> to
+put the L<ScriptX::Debug::DumpStash|Debug::DumpStash> plugin handler in the
+C<after_run> event at priority 99.
 
 =head2 SCRIPTX_IMPORT_JSON
 

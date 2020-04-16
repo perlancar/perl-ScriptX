@@ -18,7 +18,7 @@ sub new {
 }
 
 sub activate {
-    my $self = shift;
+    my ($self, $wanted_event, $wanted_prio) = @_;
 
     my $pkg = ref($self);
     my $symtbl = \%{$pkg . "::"};
@@ -50,9 +50,10 @@ sub activate {
         (my $event = $k) =~ s/^on_//;
 
         ScriptX::add_handler(
-            $event,
+            defined $wanted_event ? $wanted_event : $event,
             $plugin_name,
-            defined $meta->{prio} ? $meta->{prio} : 50,
+            defined $wanted_prio ? $wanted_prio :
+                (defined $meta->{prio} ? $meta->{prio} : 50),
             sub {
                 my $stash = shift;
                 $self->$k($stash);
