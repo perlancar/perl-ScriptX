@@ -11,6 +11,7 @@ use warnings;
 # END IFUNBUILT
 use Log::ger;
 
+our %Plugins;
 our %Handlers;
 
 my $Stash = {};
@@ -306,6 +307,19 @@ number means higher priority. Handlers for an event are executed in order of
 descending priority (higher priority first, which means smaller number first).
 
 
+=head1 CLASS METHODS
+
+=head2 run
+
+Usage:
+
+ ScriptX->run;
+
+This is actually just a shortcut for running the C<run> event:
+
+ run_event(name => 'run');
+
+
 =head1 FUNCTIONS
 
 None exported by default, but they are exportable.
@@ -341,6 +355,8 @@ choosing.
 Usage:
 
  run_event(%args);
+
+Run an event.
 
 Arguments:
 
@@ -447,7 +463,21 @@ arrayrefs containing list of handler records:
 
  [ [$label, $prio, $handler], ... ]
 
-=head2 $Stash
+=head2 %Plugins
+
+A hash of activated plugins. Keys are plugin names without the C<ScriptX::>
+prefix (e.g. L<Exit|ScriptX::Exit>) and values are plugin instances.
+
+
+=head1 STASH KEYS
+
+=head2 handlers
+
+Reference to the L<%Handlers> package variable, for convenience.
+
+=head2 plugins
+
+Reference to the L<%Plugins> package variable, for convenience.
 
 
 =head1 ENVIRONMENT

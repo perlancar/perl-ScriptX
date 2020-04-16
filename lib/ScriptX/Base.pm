@@ -25,6 +25,20 @@ sub activate {
 
     (my $plugin_name = $pkg) =~ s/\AScriptX:://;
 
+    my $meta;
+  CHECK_META: {
+        defined &{"$pkg\::meta"} or die "$pkg does not define meta()";
+        $meta = &{"$pkg\::meta"}();
+        my $v = $meta->{v}; $v = 1 unless defined $v;
+        if ($v != 1) {
+            die "Cannot use $pkg: meta: I only support v=1 ".
+                "but the module has v=$v";
+        }
+    }
+
+    # register in %Plugins
+    $ScriptX::Plugins{$plugin_name} = $self;
+
     for my $k (keys %$symtbl) {
         my $v = $symtbl->{$k};
         next unless ref $v eq 'CODE' || defined *$v{CODE};
