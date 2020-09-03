@@ -14,7 +14,10 @@ use Log::ger;
 our %Plugins;
 our %Handlers;
 
-my $Stash = {};
+my $Stash = {
+    plugins => \%Plugins,
+    handlers => \%Handlers,
+};
 
 sub run_event {
     my %args = @_;
