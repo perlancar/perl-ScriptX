@@ -26,7 +26,7 @@ sub before_run {
 }
 
 1;
-# ABSTRACT:
+# ABSTRACT: Dump stash
 
 =for Pod::Coverage ^(.+)$
 
