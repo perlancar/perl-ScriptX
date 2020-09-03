@@ -35,17 +35,17 @@ sub run_event {
     my $run_all_handlers                     = $args{run_all_handlers};                     $run_all_handlers                     = 1 unless defined $run_all_handlers;
     my $allow_before_handler_to_cancel_event = $args{allow_before_handler_to_cancel_event}; $allow_before_handler_to_cancel_event = 1 unless defined $allow_before_handler_to_cancel_event;
     my $allow_before_handler_to_skip_rest    = $args{allow_before_handler_to_skip_rest};    $allow_before_handler_to_skip_rest    = 1 unless defined $allow_before_handler_to_skip_rest;
-    my $allow_handler_to_cancel_event        = $args{allow_handler_to_cancel_event};        $allow_handler_to_cancel_event        = 1 unless defined $allow_handler_to_cancel_event;
     my $allow_handler_to_skip_rest           = $args{allow_handler_to_skip_rest};           $allow_handler_to_skip_rest           = 1 unless defined $allow_handler_to_skip_rest;
     my $allow_handler_to_repeat_event        = $args{allow_handler_to_repeat_event};        $allow_handler_to_repeat_event        = 1 unless defined $allow_handler_to_repeat_event;
     my $allow_after_handler_to_repeat_event  = $args{allow_after_handler_to_repeat_event};  $allow_after_handler_to_repeat_event  = 1 unless defined $allow_after_handler_to_repeat_event;
     my $allow_after_handler_to_skip_rest     = $args{allow_after_handler_to_skip_rest};     $allow_after_handler_to_skip_rest     = 1 unless defined $allow_after_handler_to_skip_rest;
-
+    my $stop_after_first_handler_failure     = $args{stop_after_first_handler_failure};     $stop_after_first_handler_failure     = 1 unless defined $stop_after_first_handler_failure;
 
     my ($res, $is_success);
 
-  RUN_BEFORE_HANDLERS:
+  RUN_BEFORE_EVENT_HANDLERS:
     {
+        last if $name =~ /\A(after|before)_/;
         my $i = 0;
         for my $rec (@{ $Handlers{$before_name} }) {
             $i++;
@@ -57,22 +57,26 @@ sub run_event {
             log_trace "[scriptx] [event %s] [%d/%d] <- handler %s: %s (%s)",
                 $before_name, $i, scalar(@{ $Handlers{$before_name} }), $label,
                 $res, $is_success ? "success" : "fail";
-            if ($res->[0] == 412) {
+            if ($res->[0] == 601) {
                 if ($allow_before_handler_to_cancel_event) {
-                    log_trace "[scriptx] Cancelling event $name (status 412)";
+                    log_trace "[scriptx] Cancelling event $name (status 601)";
                     return;
                 } else {
-                    die "Event handler returns 412 when we do not allow cancelling event $name";
+                    die "$before_name handler returns 601 when allow_before_handler_to_cancel_event is set to false";
                 }
             }
-            if ($allow_before_handler_to_skip_rest && $res->[0] == 301) {
-                log_trace "[scriptx] Skipping the rest of the $before_name handlers (status 301)";
-                last RUN_BEFORE_HANDLERS;
+            if ($res->[0] == 201) {
+                if ($allow_before_handler_to_skip_rest) {
+                    log_trace "[scriptx] Skipping the rest of the $before_name handlers (status 201)";
+                    last RUN_BEFORE_EVENT_HANDLERS;
+                } else {
+                    log_trace "[scriptx] $before_name handler returns 201, but we ignore it because allow_before_handler_to_skip_rest is set to false";
+                }
             }
         }
     }
 
-  RUN_HANDLERS:
+  RUN_EVENT_HANDLERS:
     {
         my $i = 0;
         $res = [304, "There is no handler for event $name"];
@@ -92,38 +96,41 @@ sub run_event {
             log_trace "[scriptx] [event %s] [%d/%d] <- handler %s: %s (%s)",
                 $name, $i, scalar(@{ $Handlers{$name} }), $label,
                 $res, $is_success ? "success" : "fail";
-            last RUN_HANDLERS if $is_success && !$run_all_handlers;
-            if ($res->[0] == 412) {
-                if ($allow_handler_to_cancel_event) {
-                    log_trace "[scriptx] Cancelling event $name (status 412)";
-                    return;
-                } else {
-                    die "Event handler returns 412 when we do not allow cancelling event $name";
-                }
+            last RUN_EVENT_HANDLERS if $is_success && !$run_all_handlers;
+            if ($res->[0] == 601) {
+                die "$name handler is not allowed to return 601";
             }
-            if ($res->[0] == 449) {
+            if ($res->[0] == 602) {
                 if ($allow_handler_to_repeat_event) {
-                    log_trace "[scriptx] Repeating event $name (status 449)";
-                    goto RUN_HANDLERS;
+                    log_trace "[scriptx] Repeating event $name (handler returns 602)";
+                    goto RUN_EVENT_HANDLERS;
                 } else {
-                    die "Event handler returns 449 when we do not allow repeating event $name";
+                    die "$name handler returns 602 when allow_handler_to_repeat_event is set to false";
                 }
             }
-            if ($allow_handler_to_skip_rest && $res->[0] == 301) {
-                log_trace "[scriptx] Skipping the rest of the $name handlers (status 301)";
-                last RUN_HANDLERS;
+            if ($res->[0] == 201) {
+                if ($allow_handler_to_skip_rest) {
+                    log_trace "[scriptx] Skipping the rest of the $name handlers (status 201)";
+                    last RUN_EVENT_HANDLERS;
+                } else {
+                    log_trace "[scriptx] $name handler returns 201, but we ignore it because allow_handler_to_skip_rest is set to false";
+                }
             }
+            last RUN_EVENT_HANDLERS if !$is_success && $stop_after_first_handler_failure;
         }
     }
 
     if ($is_success && $args{on_success}) {
+        log_trace "[scriptx] Running on_success ...";
         $args{on_success}->($Stash);
     } elsif (!$is_success && $args{on_failure}) {
+        log_trace "[scriptx] Running on_failure ...";
         $args{on_failure}->($Stash);
     }
 
-  RUN_AFTER_HANDLERS:
+  RUN_AFTER_EVENT_HANDLERS:
     {
+        last if $name =~ /\A(after|before)_/;
         my $i = 0;
         for my $rec (@{ $Handlers{$after_name} }) {
             $i++;
@@ -135,17 +142,21 @@ sub run_event {
             log_trace "[scriptx] [event %s] [%d/%d] <- handler %s: %s (%s)",
                 $after_name, $i, scalar(@{ $Handlers{$after_name} }), $label,
                 $res, $is_success ? "success" : "fail";
-            if ($res->[0] == 449) {
+            if ($res->[0] == 602) {
                 if ($allow_after_handler_to_repeat_event) {
-                    log_trace "[scriptx] Repeating event $name (status 412)";
-                    goto RUN_HANDLERS;
+                    log_trace "[scriptx] Repeating event $name (status 602)";
+                    goto RUN_EVENT_HANDLERS;
                 } else {
-                    die "Event handler returns 449 when we do not allow repeating event $name";
+                    die "$after_name handler returns 602 when allow_after_handler_to_repeat_event it set to false";
                 }
             }
-            if ($allow_after_handler_to_skip_rest && $res->[0] == 301) {
-                log_trace "[scriptx] Skipping the rest of the $after_name handlers (status 301)";
-                last RUN_AFTER_HANDLERS;
+            if ($res->[0] == 201) {
+                if ($allow_after_handler_to_skip_rest) {
+                    log_trace "[scriptx] Skipping the rest of the $after_name handlers (status 201)";
+                    last RUN_AFTER_EVENT_HANDLERS;
+                } else {
+                    log_trace "[scriptx] $after_name handler returns 201, but we ignore it because allow_after_handler_to_skip_rest is set to false";
+                }
             }
         }
     }
@@ -209,6 +220,7 @@ sub _import {
 sub _unflatten_import {
     my ($env, $what) = @_;
 
+    $what ||= "import";
     my @imports;
     my $plugin_name0;
     my @plugin_args;
@@ -299,7 +311,9 @@ In your script:
 
 =head3 Event
 
-A point in code when L<plugins|/Plugin> have a chance to do stuffs.
+A named point in code when L<plugins|/Plugin> have a chance to do stuffs, by
+registering a handler for it. In other frameworks, an event sometimes this is
+called a hook.
 
 =head3 Event handler
 
@@ -316,7 +330,7 @@ L<handler(s)|/"Event handler"> to one or more L<events|/Event>.
 
 =head3 Priority
 
-An attribute of an event handler. A number between 0 and 100, where smaller
+An attribute of event handler. A number between 0 and 100, where smaller
 number means higher priority. Handlers for an event are executed in order of
 descending priority (higher priority first, which means smaller number first).
 
@@ -370,7 +384,34 @@ Usage:
 
  run_event(%args);
 
-Run an event.
+Run an event by calling event handlers.
+
+If the name of the event (hereby called C<$name>) does not match
+/^(after|before)_/, first call the C<before_$name> event handlers. A handler for
+C<before_$name> event can B<cancel> the C<$name> event by returning 601 status,
+unless L</allow_before_handler_to_cancel_event> argument is set to false. When
+the C<$name> event is cancelled, L</run_event>() ends prematurely: no handlers
+for the C<$name> as well as C<after_$name> events are run, no C<on_success> and
+C<on_failure> code will also be called.
+
+Then the C<$name> event handlers are run. A handler for C<$name> event can skip
+the rest of the handlers by returning status 201, unless
+L</allow_handler_to_skip_rest> argument is set to false.
+
+A handler for C<$name> event can also repeat the event by returning status 602,
+unless L</allow_handler_to_repeat_event> is set to false. When an event is
+repeated, the first C<$name> event handler is executed again. The
+C<before_$name> handlers are not re-executed.
+
+When the last C<$name> handler returns success (1xx, 2xx, 3xx status) then the
+C<on_success> code is run; otherwise the C<on_failure> code is run.
+
+After that, the C<after_$name> event handlers are run. Unless
+L</allow_after_handler_to_repeat_event> is set to false, the handler for this
+event can repeat the event by returning 602 status, in which case the routine
+stops running the C<after_$name> handlers and starts running the C<$name>
+handlers again. The handler which instructs repeat must be careful not to cause
+an infinite loop.
 
 Arguments:
 
@@ -395,77 +436,65 @@ of success status.
 =item * allow_before_handler_to_cancel_event
 
 Bool. Optional, defaults to 1. When set to true, an event handler in the
-C<before_$name> event can cancel the event by returning 412 status. When set to
-false, will die whenever an event handler returns 412.
+C<before_$name> event can cancel the event by returning 601 status. When set to
+false, will die whenever an event handler returns 601.
+
+When the C<$name> event is called by the C<before_$name> event handler,
 
 =item * allow_before_handler_to_skip_rest
 
 Bool. Optional, defaults to 1. When set to true, an event handler can skip the
-rest of the event handlers in the C<before_$name> event by returning 301 status.
+rest of the event handlers in the C<before_$name> event by returning 201 status.
 When set to false, the next event handler will be called anyway even though an
-event handler returns 301.
+event handler returns 201.
 
 =item * allow_handler_to_repeat_event
 
 Bool. Optional, defaults to 1. When set to true, an event handler in the
-C<$name> event can repeat the event by returning 449 status. When set to false,
-will die whenever an event handler returns 449.
-
-=item * allow_handler_to_cancel_event
-
-Bool. Optional, defaults to 1. When set to true, an event handler in the
-C<$name> event can cancel the event by returning 412 status. When set to false,
-will die whenever an event handler returns 412.
+C<$name> event can repeat the event by returning 602 status. When set to false,
+will die whenever an event handler returns 602.
 
 =item * allow_handler_to_skip_rest
 
 Bool. Optional, defaults to 1. When set to true, an event handler can skip the
-rest of the event handlers in the C<$name> event by returning 301 status. When
+rest of the event handlers in the C<$name> event by returning 201 status. When
 set to false, the next event handler will be called anyway even though an event
-handler returns 301.
+handler returns 201.
 
 =item * allow_after_handler_to_repeat_event
 
 Bool. Optional, defaults to 1. When set to true, an event handler in the
-C<after_$name> event can repeat the event by returning 449 status. When set to
-false, will die whenever an event handler returns 449.
+C<after_$name> event can repeat the event by returning 602 status. When set to
+false, will die whenever an event handler returns 602.
 
 =item * allow_after_handler_to_skip_rest
 
 Bool. Optional, defaults to 1. When set to true, an event handler can skip the
-rest of the event handlers in the C<after_$name> event by returning 301 status.
+rest of the event handlers in the C<after_$name> event by returning 201 status.
 When set to false, the next event handler will be called anyway even though an
-event handler returns 301.
+event handler returns 201.
+
+=item * stop_after_first_handler_failure
+
+Bool. Optional, defaults to 1. When set to true, the first failure status
+(4xx/5xx) from an event is used as the status of the event and the rest of the
+handlers will be skipped. Otherwise, will ignore the failure status and move on
+to the next handler.
 
 =item * on_success
 
 Coderef. Optional.
 
+Will be executed after the last executed C<$name> handler returns 2xx code
+(including 200, 201, 204).
+
 =item * on_failure
 
 Coderef. Optional.
 
+Will be executed after the last executed C<$name> handler returns 4xx/5xx code.
+
 =back
-
-Run an event by running codes and event handlers.
-
-First, the C<before_$name> event handlers are called. Unless
-L<allow_before_handler_to_cancel_event> is set to false, the handler for this
-event can cancel the event by returning 412 status, in which case the routine
-ends prematurely (no handlers for the C<$name> as well as C<after_$name> are
-run).
-
-Then the C<$name> event handlers are run.
-
-When the last C<$name> handler returns success (1xx, 2xx, 3xx status) then the
-C<on_success> code is run; otherwise the C<on_failure> code is run.
-
-Then the C<after_$name> event handlers are run. Unless
-L<allow_after_handler_to_repeat_event> is set to false, the handler for this
-event can repeat the event by returning 449 status, in which case the routine
-stops running the C<after_$name> handlers and starts running the C<$name>
-handlers again. The handler which instructs repeat must be careful not to cause
-an infinite loop.
 
 
 =head1 VARIABLES
@@ -492,6 +521,47 @@ Reference to the L<%Handlers> package variable, for convenience.
 =head2 plugins
 
 Reference to the L<%Plugins> package variable, for convenience.
+
+
+=head1 EVENT HANDLER RETURN STATUS CODES
+
+The following are known event handler return status codes. They roughly follow
+HTTP semantics.
+
+=head2 201
+
+This signifies success with exit ("OK, Skip Rest"), meaning the handler
+instructs L</run_event>() to skip moving to the next handler for the event and
+use this status as the status of the event.
+
+=head2 204
+
+This signifies declination ("Decline"), meaning the handler opts to not do
+anything for the event. L</run_event>() will move to the next handler,
+regardless of the value of L</run_all_handlers>.
+
+=head2 Other 1xx, 2xx, 3xx
+
+Including 200 ("OK"), these also signify success. When L</run_all_handlers> is
+set to true, L</run_event>() will move to the next handler. When
+C<run_all_handlers> is set to false, run_event will finish the execution of
+handlers for the event and use the status as the status of the event.
+
+=head2 4xx, 5xx
+
+This signifies failure. When L</stop_after_first_handler_failure> is set to
+true, L</run_event>() will use the status as the last status. Otherwise, it will
+move to the next handler when L</run_all_handlers> is set to true.
+
+=head2 601
+
+This signifies event cancellation ("Cancel"), meaning the handler instructs
+L</run_event>() to cancel the event.
+
+=head2 602
+
+This signifies repeating of event ("Repeat"), meaning the handler instructs
+L</run_event>() to cancel the event.
 
 
 =head1 ENVIRONMENT
