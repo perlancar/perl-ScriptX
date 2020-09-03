@@ -22,7 +22,7 @@ sub before_run {
         last unless $@;
         require Data::Dumper; print Data::Dumper->new([$stash], ["stash"])->Purity(1)->Dump;
     }
-    [200];
+    [200, "OK"];
 }
 
 1;

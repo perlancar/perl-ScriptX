@@ -1,3 +1,5 @@
+## no critic: ControlStructures::ProhibitUnreachableCode
+
 package ScriptX::Exit;
 
 # AUTHORITY
@@ -53,7 +55,10 @@ sub activate {
             $self->{before},
             'Exit',
             0,
-            sub { exit($self->{exit_code}) },
+            sub {
+                exit($self->{exit_code});
+                [200, "OK"]; # should be unreached
+            },
         );
     }
     if ($self->{after}) {
@@ -61,7 +66,10 @@ sub activate {
             $self->{after},
             'Exit',
             100,
-            sub { exit($self->{exit_code}) },
+            sub {
+                exit($self->{exit_code});
+                [200, "OK"]; # should be unreached
+            },
         );
     }
 }

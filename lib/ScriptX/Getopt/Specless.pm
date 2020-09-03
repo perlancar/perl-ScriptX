@@ -65,4 +65,31 @@ sub before_run {
 }
 
 1;
-# ABSTRACT: Parse command-line options using Getopt::Long
+# ABSTRACT: Parse command-line options in a simple way
+
+=head1 SYNOPSIS
+
+In your script:
+
+ use ScriptX (
+     'Getopt::Specless',
+     'Run' => {code => sub { my ($self, $stash) = @_; my $opts = $stash->{opts}; print "You specified --foo!\n" if $opts->{foo} }},
+ ;
+
+On the command-line:
+
+ % ./yourscript.pl
+
+ % ./yourscript.pl --foo --bar=val --baz arg1 arg2
+ You specified --foo!
+
+
+=head1 DESCRIPTION
+
+This is an alternative to L<ScriptX::Getopt::Long> if you don't want to use
+L<Getopt::Long>.
+
+
+=head1 SEE ALSO
+
+L<ScriptX::Getopt::Long>

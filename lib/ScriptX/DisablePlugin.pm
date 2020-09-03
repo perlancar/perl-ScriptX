@@ -61,10 +61,10 @@ sub before_activate_plugin {
         } else {
             next unless $stash->{plugin_name} eq $el;
         }
-        log_info "NOT loading ScriptX plugin '$stash->{plugin_name}' (disabled by DisablePlugin)";
-        return [412];
+        log_info "[ScriptX::DisablePlugin] Disabling loading of ScriptX plugin '$stash->{plugin_name}'";
+        return [601, "Cancel"];
     }
-    [200];
+    [200, "OK"];
 }
 
 1;
@@ -74,7 +74,7 @@ sub before_activate_plugin {
 
 =head1 SYNOPSIS
 
- use ScriptX DisablePlugin => {plugins => ['CLI::Log', qr/Foo/]};
+ use ScriptX DisablePlugin => {plugins => ['Foo', qr/^Bar/]};
 
 
 =head1 DESCRIPTION

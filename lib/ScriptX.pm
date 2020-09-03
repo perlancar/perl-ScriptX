@@ -19,9 +19,8 @@ my $Stash = {};
 sub run_event {
     my %args = @_;
 
-    # get arguments
-
     my $name = $args{name};
+    log_trace "[scriptx] -> run_event(%s)", \%args;
     defined $name or die "Please supply 'name'";
     $Handlers{$name} ||= [];
 
@@ -46,6 +45,7 @@ sub run_event {
   RUN_BEFORE_EVENT_HANDLERS:
     {
         last if $name =~ /\A(after|before)_/;
+        local $Stash->{event} = $before_name;
         my $i = 0;
         for my $rec (@{ $Handlers{$before_name} }) {
             $i++;
@@ -60,7 +60,7 @@ sub run_event {
             if ($res->[0] == 601) {
                 if ($allow_before_handler_to_cancel_event) {
                     log_trace "[scriptx] Cancelling event $name (status 601)";
-                    return;
+                    goto RETURN;
                 } else {
                     die "$before_name handler returns 601 when allow_before_handler_to_cancel_event is set to false";
                 }
@@ -78,6 +78,7 @@ sub run_event {
 
   RUN_EVENT_HANDLERS:
     {
+        local $Stash->{event} = $name;
         my $i = 0;
         $res = [304, "There is no handler for event $name"];
         $is_success = 1;
@@ -131,6 +132,7 @@ sub run_event {
   RUN_AFTER_EVENT_HANDLERS:
     {
         last if $name =~ /\A(after|before)_/;
+        local $Stash->{event} = $after_name;
         my $i = 0;
         for my $rec (@{ $Handlers{$after_name} }) {
             $i++;
@@ -161,6 +163,8 @@ sub run_event {
         }
     }
 
+  RETURN:
+    log_trace "[scriptx] <- run_event(name=%s)", $name;
     undef;
 }
 
@@ -197,7 +201,7 @@ sub activate_plugin {
         on_success => sub {
             my $package = "ScriptX::$plugin_name";
             (my $package_pm = "$package.pm") =~ s!::!/!g;
-            log_trace "Loading module $package ...";
+            log_trace "[scriptx] Loading module $package ...";
             require $package_pm;
             my $obj = $package->new(%{ $args || {} });
             $obj->activate($wanted_event, $wanted_prio);
@@ -264,7 +268,7 @@ sub import {
       READ_SCRIPTX_IMPORT:
         {
             last unless defined $ENV{SCRIPTX_IMPORT};
-            log_trace "Reading env variable SCRIPTX_IMPORT ...";
+            log_trace "[scriptx] Reading env variable SCRIPTX_IMPORT ...";
             _import(_unflatten_import($ENV{SCRIPTX_IMPORT}, "SCRIPTX_IMPORT"));
             $read_env++;
             last READ_ENV;
@@ -274,7 +278,7 @@ sub import {
         {
             last unless defined $ENV{SCRIPTX_IMPORT_JSON};
             require JSON::PP;
-            log_trace "Reading env variable SCRIPTX_IMPORT_JSON ...";
+            log_trace "[scriptx] Reading env variable SCRIPTX_IMPORT_JSON ...";
             my $imports = JSON::PP::decode_json($ENV{SCRIPTX_IMPORT_JSON});
             _import(@$imports);
             $read_env++;
@@ -306,6 +310,8 @@ In your script:
 
 
 =head1 DESCRIPTION
+
+For now, see the included example scripts.
 
 =head2 Glossary
 

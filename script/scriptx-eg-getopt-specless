@@ -1,0 +1,72 @@
+#!perl
+
+use strict;
+use warnings;
+
+use ScriptX (
+    'Getopt::Specless',
+    'Run',
+);
+
+sub run {
+    my ($self, $stash) = @_;
+
+    my $opts = $stash->{opts};
+    unless ($opts->{name}) {
+        print "Please specify --name!\n";
+        exit 1;
+    }
+    unless ($opts->{gender}) {
+        print "Please specify --gender!\n";
+        exit 1;
+    }
+    unless ($opts->{gender} =~ /\A[mf]\z/i) {
+        print "Invalid value in --gender, please specify m|f!\n";
+        exit 1;
+    }
+
+    print "Hello, ", ($opts->{gender} =~ /m/i ? "Mr." : "Mrs."), " $opts->{name}!\n";
+}
+
+ScriptX->run;
+
+# ABSTRACT: Parse command-line options using simple heuristics (demos debugging by dumping stash)
+# PODNAME:
+
+=head1 SYNOPSIS
+
+ % script-eg-getopt-specless
+ Please specify --name!
+
+ % script-eg-getopt-specless --name=Budi
+ Please specify --gender!
+
+ % script-eg-getopt-specless --name=Budi --gender=x
+ Invalid value in --gender, please specify m|f!
+
+ % script-eg-getopt-specless --name=Budi --gender=m
+ Hello, Mr. Budi!
+
+
+=head1 DESCRIPTION
+
+This script demonstrates the use of L<ScriptX::Getopt::Specless>.
+
+When you encounter a problem, e.g.:
+
+ % script-eg-getopt-specless --name=Budi --gender m
+ Invalid value in --gender, please specify m|f!
+
+you can use the L<ScriptX::Debug::DumpStash>:
+
+ % SCRIPTX_IMPORT=-Debug::DumpStash script-eg-getopt-specless --name=Budi --gender m
+ {
+   argv  => ["f"],                           # {0}
+   event => "before_run",                    # {1}
+   opts  => { gender => 1, name => "Budi" }, # {2}
+ }
+ Invalid value in --gender, please specify m|f!
+
+You notice that the C<gender> option gets the value of C<1> while C<f> is parsed
+as an argument. That's because in specless option parsing, all option with value
+must be specified as --opt=val and not C<<--opt val>>.

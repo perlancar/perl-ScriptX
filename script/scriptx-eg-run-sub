@@ -1,0 +1,55 @@
+#!perl
+
+use strict;
+use warnings;
+
+use ScriptX 'Run';
+
+sub run {
+    my ($self, $stash) = @_;
+
+    my $name;
+    while (1) {
+        print "Please enter your name: ";
+        chomp($name = <STDIN>);
+        if ($name =~ /\S/) {
+            last;
+        } else {
+            print "Wrong response. ";
+        }
+    }
+
+    my $gender;
+    while (1) {
+        print "Please enter your gender (M/F): ";
+        chomp($gender = <STDIN>);
+        if ($gender =~ /^[mf]$/i) {
+            last;
+        } else {
+            print "Wrong response. ";
+        }
+    }
+
+    print "Hello, ", ($gender =~ /m/i ? "Mr." : "Mrs."), " $name!\n";
+}
+
+ScriptX->run;
+
+# ABSTRACT: Run a code
+# PODNAME:
+
+=head1 SYNOPSIS
+
+ % script-eg-run-sub
+ Please enter your name: Budi
+ Please enter your gender (M/F): x
+ Wrong response. Please enter your gender (M/F): m
+ Hello, Mr. Budi!
+
+
+=head1 DESCRIPTION
+
+This script loads the L<ScriptX::Run> plugin to run something. The plugin
+accepts a coderef (C<code>) or a string/array for external command (passed to
+L<IPC::System::Options>'s C<system()>). Alternatively, it can search for
+C<run()> in the C<main> package. In this script, we provide the third option.

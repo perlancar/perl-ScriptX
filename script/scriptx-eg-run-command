@@ -1,0 +1,29 @@
+#!perl
+
+use strict;
+use warnings;
+
+use ScriptX 'Run' => {
+    command => [{log=>1}, 'ls', '-l'],
+};
+
+ScriptX->run;
+
+# ABSTRACT: Run a command
+# PODNAME:
+
+=head1 SYNOPSIS
+
+ % script-eg-run-command
+ ...
+
+=head1 DESCRIPTION
+
+This script loads the L<ScriptX::Run> plugin to run something. The plugin
+accepts a coderef (C<code>) or a string/array for external command (passed to
+L<IPC::System::Options>'s C<system()>). Alternatively, it can search for
+C<run()> in the C<main> package. In this script, we provide the first option.
+
+To see the logs, you can use L<Log::ger::Screen>:
+
+ % PERL5OPT=-MLog::ger::Screen TRACE=1 script-eg-run-command

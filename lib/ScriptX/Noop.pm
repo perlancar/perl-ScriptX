@@ -43,8 +43,8 @@ sub meta_on_run {
 sub on_run {
     my ($self, $stash) = @_;
 
-    log_info "Hello from the Noop plugin";
-    [200];
+    log_info "[ScriptX::Noop] Hello from the Noop plugin";
+    [200, "OK"];
 }
 
 1;
