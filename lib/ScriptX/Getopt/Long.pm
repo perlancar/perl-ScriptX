@@ -4,7 +4,7 @@ use parent 'ScriptX::Base';
 
 sub meta {
     return {
-        summary => 'Get options using Getop::Long',
+        summary => 'Parse command-line options using Getop::Long',
         conf => {
             spec => {
                 summary => "Specification to be passed to Getopt::Long's GetOptions",
@@ -25,7 +25,7 @@ sub before_run {
 }
 
 1;
-# ABSTRACT: Parse command-line options using Getopt::Long
+# ABSTRACT:
 
 =head1 SYNOPSIS
 

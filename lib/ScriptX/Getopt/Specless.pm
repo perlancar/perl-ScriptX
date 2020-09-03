@@ -7,7 +7,7 @@ use parent 'ScriptX::Base';
 
 sub meta {
     return {
-        summary => 'Get command-line options in a simple, spec-less way',
+        summary => 'Parse command-line options in a simple, spec-less way',
         description => <<'_',
 
 This plugin parses command-line options from command-line arguments in a simple
@@ -65,7 +65,7 @@ sub before_run {
 }
 
 1;
-# ABSTRACT: Parse command-line options in a simple way
+# ABSTRACT:
 
 =head1 SYNOPSIS
 

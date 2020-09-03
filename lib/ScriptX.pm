@@ -314,6 +314,8 @@ In your script:
 
 =head1 DESCRIPTION
 
+B<EXPERIMENTAL, EARLY RELEASE.>
+
 For now, see the included example scripts.
 
 =head2 Glossary
@@ -523,6 +525,10 @@ prefix (e.g. L<Exit|ScriptX::Exit>) and values are plugin instances.
 
 =head1 STASH KEYS
 
+=head2 event
+
+The name of current event.
+
 =head2 handlers
 
 Reference to the L<%Handlers> package variable, for convenience.
@@ -530,6 +536,14 @@ Reference to the L<%Handlers> package variable, for convenience.
 =head2 plugins
 
 Reference to the L<%Plugins> package variable, for convenience.
+
+=head2 plugin_name
+
+Set for C<activate_plugin> event.
+
+=head2 plugin_args
+
+Set for C<activate_plugin> event.
 
 
 =head1 EVENT HANDLER RETURN STATUS CODES

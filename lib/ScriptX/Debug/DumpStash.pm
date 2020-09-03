@@ -9,6 +9,7 @@ use parent 'ScriptX::Base';
 
 sub meta {
     return {
+        summary => 'Dump stash',
     };
 }
 
@@ -26,7 +27,7 @@ sub before_run {
 }
 
 1;
-# ABSTRACT: Dump stash
+# ABSTRACT:
 
 =for Pod::Coverage ^(.+)$
 
