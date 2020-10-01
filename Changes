@@ -1,7 +1,21 @@
+0.000004  2020-10-01  Released-By: PERLANCAR; Urgency: medium
+
+	  [Incompatible changes]
+
+          - Rename ScriptX::Base to ScriptX_Base to make ScriptX::* namespace
+	    cleaner (all are plugins).
+
+	  [Documentation]
+
+          - Add manual placeholders.
+
+
 0.000003  2020-10-01  Released-By: PERLANCAR; Urgency: medium
 
-	  - [incompatible change] Replace %Plugins with @Plugin_Instances,
-	    and 'plugins' stash key with 'plugin_instances'.
+	  [Incompatible changes]
+
+          - Replace %Plugins with @Plugin_Instances, and 'plugins' stash key
+	    with 'plugin_instances'.
 
 
 0.000002  2020-10-01  Released-By: PERLANCAR; Urgency: medium
@@ -18,7 +32,9 @@
 
 	  - Order handler of same priority by order of addition.
 
-	  - [doc] Fix examples and Abstracts.
+	  [Documentation]
+
+          - Fix examples and Abstracts.
 
 
 0.000001 2020-09-03  Released-By: PERLANCAR; Urgency: medium
