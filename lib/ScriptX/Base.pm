@@ -36,8 +36,11 @@ sub activate {
         }
     }
 
-    # register in %Plugins
-    $ScriptX::Plugins{$plugin_name} = $self;
+    # register in @Plugins
+    {
+        no warnings 'once';
+        push @ScriptX::Plugin_Instances, $self;
+    }
 
     for my $k (keys %$symtbl) {
         my $v = $symtbl->{$k};
