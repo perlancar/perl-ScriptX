@@ -1,3 +1,9 @@
+0.000003  2020-10-01  Released-By: PERLANCAR; Urgency: medium
+
+	  - [incompatible change] Replace %Plugins with @Plugin_Instances,
+	    and 'plugins' stash key with 'plugin_instances'.
+
+
 0.000002  2020-10-01  Released-By: PERLANCAR; Urgency: medium
 
           [Incompatible changes]
