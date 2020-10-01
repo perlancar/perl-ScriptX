@@ -1,3 +1,20 @@
+0.000002  2020-10-01  Released-By: PERLANCAR; Urgency: medium
+
+          [Incompatible changes]
+
+	  - [plugin Getopt::Long] By default, abort on GetOptions() failure
+	    by introducing abort_on_failure configuration that defaults to
+	    1.
+
+          [Enhancements]
+
+	  - Add plugin: ModifyPlugin.
+
+	  - Order handler of same priority by order of addition.
+
+	  - [doc] Fix examples and Abstracts.
+
+
 0.000001 2020-09-03  Released-By: PERLANCAR; Urgency: medium
 
 	- [bugfix] Forgot to set stash keys 'plugins' and 'handlers', as
