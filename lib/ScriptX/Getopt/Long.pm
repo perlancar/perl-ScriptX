@@ -11,6 +11,11 @@ sub meta {
                 schema => 'array*',
                 req => 1,
             },
+            abort_on_failure => {
+                summary => 'Whether to abort script execution on GetOptions() failure',
+                schema => 'bool*',
+                default => 1,
+            },
         },
     };
 }
@@ -18,10 +23,12 @@ sub meta {
 sub before_run {
     my ($self, $stash) = @_;
 
+    my $abort_on_failure = $self->{abort_on_failure} // 1;
+
     require Getopt::Long;
     Getopt::Long::Configure("gnu_getopt", "no_ignore_case");
     my $res = Getopt::Long::GetOptions(@{ $self->{spec} });
-    $res ? [200] : [500, "GetOptions failed"];
+    $res ? [200] : [$abort_on_failure ? 601 : 500, "GetOptions failed"];
 }
 
 1;
