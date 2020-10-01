@@ -1,0 +1,15 @@
+package ScriptX_Manual::FAQ;
+
+# AUTHORITY
+# DATE
+# DIST
+# VERSION
+
+1;
+# ABSTRACT: FAQ for ScriptX
+
+=pod
+
+=head1 DESCRIPTION
+
+Coming soon.

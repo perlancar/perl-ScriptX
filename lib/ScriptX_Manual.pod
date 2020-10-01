@@ -1,0 +1,15 @@
+package ScriptX_Manual;
+
+# AUTHORITY
+# DATE
+# DIST
+# VERSION
+
+1;
+# ABSTRACT: Manual for ScriptX
+
+=pod
+
+=head1 DESCRIPTION
+
+Coming soon.
