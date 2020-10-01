@@ -584,7 +584,7 @@ L</run_event>() to cancel the event.
 =head2 602
 
 This signifies repeating of event ("Repeat"), meaning the handler instructs
-L</run_event>() to cancel the event.
+L</run_event>() to repeat the event.
 
 
 =head1 ENVIRONMENT
