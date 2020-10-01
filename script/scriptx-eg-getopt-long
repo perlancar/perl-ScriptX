@@ -32,25 +32,41 @@ sub run {
 
 ScriptX->run;
 
-# ABSTRACT: Parse command-line options using Getopt::Long
+# ABSTRACT: Parse command-line options using Getopt::Long (demos modifying plugin)
 # PODNAME:
 
 =head1 SYNOPSIS
 
+Example 1:
+
  % script-eg-getopt-long
  Please specify --name!
+
+Example 2:
 
  % script-eg-getopt-long --name Budi
  Please specify --gender!
 
+Example 3:
+
  % script-eg-getopt-long --name Budi --gender x
  Invalid value in --gender, please specify m|f!
+
+Example 4:
 
  % script-eg-getopt-long --name Budi --gender m
  Hello, Mr. Budi!
 
+Example 5 (execution is aborted because of unknown option):
+
  % script-eg-getopt-long --name Budi --gender m --foo
  Unknown option: foo
+
+Example 6 (execution continues despite unknown option):
+
+ % SCRIPTX_IMPORT_JSON='["ModifyPlugin",{"plugin":"Getopt::Long", "add_or_modify_args":{"abort_on_faiure":0}}]' scriptx-eg-getopt-long  --name Budi --gender m --foo
+ Unknown option: foo
+ Hello, Mr. Budi!
 
 
 =head1 DESCRIPTION
@@ -60,8 +76,22 @@ does not do much. It's okay if you want to load and use L<Getopt::Long>
 directly.
 
 By default, the L</abort_on_failure> is set to 1 which means when Getopt::Long's
-GetOptions returns failure the execution is aborted, as shown in the last
-example.
+GetOptions returns failure the execution is aborted, as shown in example 5. If
+you want to set C<abort_on_faiure> to 0, you can modify the script and set:
+
+ use ScriptX (
+     'Getopt::Long' => {
+         spec => ['name=s' => \$name, 'gender=s' => \$gender],
+         abort_on_faiure => 0,
+     },
+     ...
+ );
+
+or use the L<ScriptX::ModifyPlugin> plugin from the command-line:
+
+ % SCRIPTX_IMPORT_JSON='["ModifyPlugin",{"plugin":"Getopt::Long", "add_or_modify_args":{"abort_on_faiure":0}}]' scriptx-eg-getopt-long ...
+
+as shown in example 6.
 
 
 =head1 SEE ALSO
