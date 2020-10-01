@@ -1,5 +1,10 @@
 package ScriptX::Getopt::Long;
 
+# AUTHORITY
+# DATE
+# DIST
+# VERSION
+
 use parent 'ScriptX_Base';
 
 sub meta {
