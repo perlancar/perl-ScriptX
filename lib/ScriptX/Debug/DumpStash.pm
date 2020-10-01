@@ -43,3 +43,9 @@ on the command-line perl option:
 
  -MScriptX=-Debug::DumpStash@after_run
  -MScriptX=-Debug::DumpStash@after_run@99
+
+You can also dump at more than one events, since a plugin can be added multiple
+times:
+
+ use ScriptX 'Debug::DumpStash@before_run';
+ use ScriptX 'Debug::DumpStash@after_run';
