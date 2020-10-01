@@ -177,6 +177,7 @@ sub run {
     );
 }
 
+my $handler_seq = 0;
 sub add_handler {
     my ($event, $label, $prio, $handler) = @_;
 
@@ -185,7 +186,7 @@ sub add_handler {
 
     # keep sorted
     splice @{ $Handlers{$event} }, 0, scalar(@{ $Handlers{$event} }),
-        (sort { $a->[1] <=> $b->[1] } @{ $Handlers{$event} }, [$label, $prio, $handler]);
+        (sort { $a->[1] <=> $b->[1] || $a->[3] <=> $b->[3] } @{ $Handlers{$event} }, [$label, $prio, $handler, $handler_seq++]);
 }
 
 sub activate_plugin {
