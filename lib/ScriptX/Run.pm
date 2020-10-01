@@ -8,7 +8,7 @@ package ScriptX::Run;
 use strict;
 use Log::ger;
 
-use parent 'ScriptX::Base';
+use parent 'ScriptX_Base';
 
 sub meta {
     return {

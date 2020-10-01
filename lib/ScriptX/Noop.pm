@@ -11,7 +11,7 @@ use warnings;
 # END IFUNBUILT
 use Log::ger;
 
-use parent 'ScriptX::Base';
+use parent 'ScriptX_Base';
 require ScriptX;
 
 sub meta {

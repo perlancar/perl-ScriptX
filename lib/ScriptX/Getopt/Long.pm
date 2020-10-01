@@ -1,6 +1,6 @@
 package ScriptX::Getopt::Long;
 
-use parent 'ScriptX::Base';
+use parent 'ScriptX_Base';
 
 sub meta {
     return {

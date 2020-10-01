@@ -5,7 +5,7 @@ package ScriptX::Debug::DumpStash;
 # DIST
 # VERSION
 
-use parent 'ScriptX::Base';
+use parent 'ScriptX_Base';
 
 sub meta {
     return {

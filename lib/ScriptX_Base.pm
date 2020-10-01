@@ -1,4 +1,4 @@
-package ScriptX::Base;
+package ScriptX_Base;
 
 # AUTHORITY
 # DATE
