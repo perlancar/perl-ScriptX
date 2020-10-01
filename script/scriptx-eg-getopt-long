@@ -40,16 +40,16 @@ ScriptX->run;
  % script-eg-getopt-long
  Please specify --name!
 
- % script-eg-getopt-long --name=Budi
+ % script-eg-getopt-long --name Budi
  Please specify --gender!
 
- % script-eg-getopt-long --name=Budi --gender=x
+ % script-eg-getopt-long --name Budi --gender x
  Invalid value in --gender, please specify m|f!
 
- % script-eg-getopt-long --name=Budi --gender=m
+ % script-eg-getopt-long --name Budi --gender m
  Hello, Mr. Budi!
 
- % script-eg-getopt-long --name=Budi --gender=m
+ % script-eg-getopt-long --name Budi --gender m --foo
  Unknown option: foo
 
 
