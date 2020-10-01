@@ -51,7 +51,6 @@ ScriptX->run;
 
  % script-eg-getopt-long --name=Budi --gender=m
  Unknown option: foo
- Hello, Mr. Budi!
 
 
 =head1 DESCRIPTION
@@ -59,6 +58,10 @@ ScriptX->run;
 This script demonstrates the use of L<ScriptX::Getopt::Long> which, admittedly,
 does not do much. It's okay if you want to load and use L<Getopt::Long>
 directly.
+
+By default, the L</abort_on_failure> is set to 1 which means when Getopt::Long's
+GetOptions returns failure the execution is aborted, as shown in the last
+example.
 
 
 =head1 SEE ALSO
