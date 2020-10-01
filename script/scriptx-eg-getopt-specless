@@ -47,6 +47,9 @@ ScriptX->run;
  % script-eg-getopt-specless --name=Budi --gender=m
  Hello, Mr. Budi!
 
+ % script-eg-getopt-specless --name=Budi --gender=m --foo
+ Hello, Mr. Budi!
+
 
 =head1 DESCRIPTION
 

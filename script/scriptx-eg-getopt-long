@@ -32,21 +32,25 @@ sub run {
 
 ScriptX->run;
 
-# ABSTRACT: Parse command-line options using simple heuristics (demos debugging by dumping stash)
+# ABSTRACT: Parse command-line options using Getopt::Long
 # PODNAME:
 
 =head1 SYNOPSIS
 
- % script-eg-getopt-specless
+ % script-eg-getopt-long
  Please specify --name!
 
- % script-eg-getopt-specless --name=Budi
+ % script-eg-getopt-long --name=Budi
  Please specify --gender!
 
- % script-eg-getopt-specless --name=Budi --gender=x
+ % script-eg-getopt-long --name=Budi --gender=x
  Invalid value in --gender, please specify m|f!
 
- % script-eg-getopt-specless --name=Budi --gender=m
+ % script-eg-getopt-long --name=Budi --gender=m
+ Hello, Mr. Budi!
+
+ % script-eg-getopt-long --name=Budi --gender=m
+ Unknown option: foo
  Hello, Mr. Budi!
 
 
