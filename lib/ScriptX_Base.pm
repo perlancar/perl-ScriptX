@@ -36,7 +36,7 @@ sub activate {
         }
     }
 
-    # register in @Plugins
+    # register in @Plugin_Instances
     {
         no warnings 'once';
         push @ScriptX::Plugin_Instances, $self;
