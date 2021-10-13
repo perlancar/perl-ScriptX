@@ -270,25 +270,17 @@ sub import {
   READ_ENV:
     {
         last if $read_env;
-      READ_SCRIPTX_IMPORT:
-        {
-            last unless defined $ENV{SCRIPTX_IMPORT};
-            log_trace "[scriptx] Reading env variable SCRIPTX_IMPORT ...";
-            _import(_unflatten_import($ENV{SCRIPTX_IMPORT}, "SCRIPTX_IMPORT"));
-            $read_env++;
-            last READ_ENV;
-        }
-
-      READ_SCRIPTX_IMPORT_JSON:
-        {
-            last unless defined $ENV{SCRIPTX_IMPORT_JSON};
+        my $env = $ENV{SCRIPTX_IMPORT};
+        last unless defined $env;
+        log_trace "[scriptx] Reading env variable SCRIPTX_IMPORT ...";
+        if ($env =~ /\A\[/) {
             require JSON::PP;
-            log_trace "[scriptx] Reading env variable SCRIPTX_IMPORT_JSON ...";
-            my $imports = JSON::PP::decode_json($ENV{SCRIPTX_IMPORT_JSON});
+            my $imports = JSON::PP::decode_json($env);
             _import(@$imports);
-            $read_env++;
-            last READ_ENV;
+        } else {
+            _import(_unflatten_import($env, "SCRIPTX_IMPORT"));
         }
+        $read_env++;
     }
 
     if (@_ && $_[0] =~ /\A-/) {
@@ -594,7 +586,9 @@ L</run_event>() to repeat the event.
 
 String. Additional import, will be added at the first import() before the usual
 import arguments. Used to add plugins for a running script, e.g. to add
-debugging plugins. The syntax is:
+debugging plugins.
+
+The syntax is:
 
  -<PLUGIN_NAME0>,<arg1>,<argval1>,...,-<PLUGIN_NAME0>,...
 
@@ -626,15 +620,12 @@ C<@EVENT> or C<@EVENT@PRIO>. For example: C<Debug::DumpStash@after_run@99> to
 put the L<ScriptX::Debug::DumpStash|Debug::DumpStash> plugin handler in the
 C<after_run> event at priority 99.
 
-=head2 SCRIPTX_IMPORT_JSON
+If value of C<SCRIPTX_IMPORT> begins with C<[> (an open square bracket), then it
+is assumed to be JSON-encoded array of list of import arguments. Useful if a
+plugin accept data structure instead of plain scalars. With this syntax, plugin
+names need not be prefixed with C<-> (dash). Example:
 
-String (JSON-encoded array). This is an alternative to L</SCRIPTX_IMPORT> and
-has a lower precedence (will not be evaluated when SCRIPTX_IMPORT is defined).
-Useful if a plugin accept data structure instead of plain scalars.
-
-Example:
-
- SCRIPTX_IMPORT_JSON='["CLI::Log", "Rinci::CLI::Debug::DumpStashAfterGetArgs", "Exit", {"after":"after_get_args"}, "Rinci", {"func":"MyPackage::myfunc"}]'
+ SCRIPTX_IMPORT='["CLI::Log", "Rinci::CLI::Debug::DumpStashAfterGetArgs", "Exit", {"after":"after_get_args"}, "Rinci", {"func":"MyPackage::myfunc"}]'
 
 
 =head1 SEE ALSO
